@@ -22,16 +22,35 @@ using namespace std;
 #define IN_MAX  256
 #define OUT_MAX 256
 
-#define DEBUG 1
+#define DEBUG 0
+
+void output_colored_img(cv::Mat& lumaImg, cv::Mat& tmImg, cv::Mat& rgbImg, cv::Mat& coloredTmImg){
+    int nRows = tmImg.rows;
+    int nCols = tmImg.cols;
+    float gain;
+    for(int i = 0; i < nRows; ++i){
+        for(int j = 0; j < nCols; ++j){
+            gain = (float)(tmImg.at<uchar>(i,j)) / ((float)(lumaImg.at<uchar>(i,j)) + 1e-6);
+            // r, g, b channel:
+            for(int c = 0; c < 3; ++c){
+                float tmp = (rgbImg.at<Vec3b>(i,j)[c] - 16.0f) * gain + 16.0f;
+                //float tmp = (float)rgbImg.at<Vec3b>(i,j)[c] * gain;
+                tmp = tmp < 0.0f? 0.0f : tmp;
+                tmp = tmp > 255.0f? 255.0f : tmp;
+                coloredTmImg.at<Vec3b>(i,j)[c] = (uint8_t)tmp;
+            }
+        }
+    }
+}
 
 int main(int argc, char** argv)
 {
-    cv::Mat src = cv::imread("../../img/1.jpg", 0);
+    cv::Mat src = cv::imread("../img/1.jpg", 0);
     
     cv::Mat out = src.clone();
-    cv::equalizeHist(src, out);
-    cv::imwrite("EQ_HIST.png", out);
-    cv::imwrite("ORI.png", src);
+    // cv::equalizeHist(src, out);
+    // cv::imwrite("EQ_HIST.png", out);
+    // cv::imwrite("ORI.png", src);
 
     Ltm<uint8_t, uint8_t> ltm(src.data, out.data, src.cols, src.rows, H_NUMS, V_NUMS, IN_MAX, OUT_MAX);
 #if DEBUG == 1
@@ -69,11 +88,15 @@ int main(int argc, char** argv)
         }
     }
     imshow("lut", banlance_lut);
-    cv::imwrite("LUT.png", banlance_lut);
+    cv::imwrite("../dump/LUT.png", banlance_lut);
 #else
     ltm.Run();
 #endif
-    cv::imwrite("LTM.png", out);
-    cv::waitKey(0);
+    cv::imwrite("../dump/LTM.png", out);
+    cv::Mat rgbImg = cv::imread("../img/1.jpg", IMREAD_COLOR);
+    cv::Mat coloredTmImg = cv::imread("../img/1.jpg", IMREAD_COLOR);
+    output_colored_img(src, out, rgbImg, coloredTmImg);
+    cv::imwrite("../dump/LTM_colored.png", coloredTmImg);
+    //cv::waitKey(0);
     return 0;
 }
