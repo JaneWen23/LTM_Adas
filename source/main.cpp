@@ -9,20 +9,20 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
-#include <iostream>
+//#include <iostream>
 #include "ltm.hpp"
 
 
 using namespace cv;
 using namespace std;
 
-#define H_NUMS 5
+#define H_NUMS 4
 #define V_NUMS 4
 
 #define IN_MAX  256
 #define OUT_MAX 256
 
-#define DEBUG 0
+#define DEBUG 1
 
 void output_colored_img(cv::Mat& lumaImg, cv::Mat& tmImg, cv::Mat& rgbImg, cv::Mat& coloredTmImg){
     int nRows = tmImg.rows;
@@ -30,11 +30,11 @@ void output_colored_img(cv::Mat& lumaImg, cv::Mat& tmImg, cv::Mat& rgbImg, cv::M
     float gain;
     for(int i = 0; i < nRows; ++i){
         for(int j = 0; j < nCols; ++j){
-            gain = (float)(tmImg.at<uchar>(i,j)) / ((float)(lumaImg.at<uchar>(i,j)) + 1e-6);
+            gain = ((float)(tmImg.at<uchar>(i,j))) / ((float)(lumaImg.at<uchar>(i,j)) + 1e-6);
             // r, g, b channel:
             for(int c = 0; c < 3; ++c){
-                float tmp = (rgbImg.at<Vec3b>(i,j)[c] - 16.0f) * gain + 16.0f;
-                //float tmp = (float)rgbImg.at<Vec3b>(i,j)[c] * gain;
+                float tmp = (rgbImg.at<Vec3b>(i,j)[c] - 16.0f)/(255.0f - 16.0f) * gain * (255.0f - 16.0f) + 16.0f;
+                // float tmp = (rgbImg.at<Vec3b>(i,j)[c] - 16.0f) * gain + 16.0f; // which to use?
                 tmp = tmp < 0.0f? 0.0f : tmp;
                 tmp = tmp > 255.0f? 255.0f : tmp;
                 coloredTmImg.at<Vec3b>(i,j)[c] = (uint8_t)tmp;
@@ -45,6 +45,8 @@ void output_colored_img(cv::Mat& lumaImg, cv::Mat& tmImg, cv::Mat& rgbImg, cv::M
 
 int main(int argc, char** argv)
 {
+    // test_int_and_ln(); //debug only
+    // exit(0);
     cv::Mat src = cv::imread("../img/1.jpg", 0);
     
     cv::Mat out = src.clone();
@@ -97,6 +99,7 @@ int main(int argc, char** argv)
     cv::Mat coloredTmImg = cv::imread("../img/1.jpg", IMREAD_COLOR);
     output_colored_img(src, out, rgbImg, coloredTmImg);
     cv::imwrite("../dump/LTM_colored.png", coloredTmImg);
+
     //cv::waitKey(0);
     return 0;
 }
